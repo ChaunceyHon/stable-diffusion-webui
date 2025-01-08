@@ -1,0 +1,133 @@
+#创建环境
+conda create -n sd python=3.10
+#激活
+conda activate sd
+
+#安装依赖
+apt-get update
+apt install build-essential
+apt install libgl1
+apt-get install libgoogle-perftools4 libtcmalloc-minimal4 -y
+apt install ffmpeg
+apt-get install bc
+apt-get install iproute2  #ip addr
+
+#下载源码
+git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
+
+#将模型anything-v5.safetensors上传至/stable-diffusion-webui/models/stable-diffusion/sd1.5/
+mkdir -p /workspace/stable-diffusion-webui/models/Stable-diffusion/sd1.5/
+
+wget -O /workspace/stable-diffusion-webui/models/Stable-diffusion/sd1.5/anythng-v5.safetensors "https://hf-mirror.com/nolanaatama/nythngv5/resolve/main/nythngv5.safetensors?download=true"
+
+#调整启动文件参数 webui-user.sh
+webui-user.sh
+export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access --xformers --port=7860 --share --enable-insecure-extension-access"
+
+#修改launch_utils.py
+launch_utils.py
+def prepare_environment():
+torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://mirrors.aliyun.com/pytorch-wheels/cu121")
+torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.1.2 torchvision==0.16.2 -f  {torch_index_url}")
+
+#解决huggingface.co访问问题
+pip install -U huggingface_hub
+#打开目录下文件：~/.bashrc，在文件末尾插入一行：
+export HF_ENDPOINT=https://hf-mirror.com
+#然后关闭~/.bashrc文件，在命令行中运行：
+source ~/.bashrc
+
+conda activate sd
+
+
+#下载各模型文件
+#新建一个download_models.sh文件，然后将以下引号内的内容全都写入文件中：
+“
+#!/bin/bash
+
+# 下载各模型文件
+cd /workspace/stable-diffusion-webui
+mkdir -p repositories
+cd /workspace/stable-diffusion-webui/repositories
+git clone https://github.com/crowsonkb/k-diffusion
+git clone https://github.com/sczhou/CodeFormer
+git clone https://github.com/salesforce/BLIP
+git clone https://github.com/Stability-AI/generative-models
+git clone https://github.com/Stability-AI/stablediffusion stable-diffusion-stability-ai
+
+wget -O /workspace/stable-diffusion-webui/models/Stable-diffusion/sd_xl_base_1.0.safetensors "https://www.wisemodel.cn/file-proxy/LiuDQ/stable-diffusion-xl-base-1.0-stabilityai/-/raw/main/sd_xl_base_1.0.safetensors?inline=false"
+
+wget -O /workspace/stable-diffusion-webui/models/Stable-diffusion/v1-5-pruned-emaonly.safetensors "https://hf-mirror.com/runwayml/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors"
+
+wget -O /workspace/stable-diffusion-webui/models/Stable-diffusion/sd_xl_refiner_1.0.safetensors "https://hf-mirror.com/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors"
+
+wget -O /workspace/stable-diffusion-webui/models/VAE/sdxl_vae_fp16_fix.safetensors "https://www.wisemodel.cn/file-proxy/fireicewolf/stable_diffusion_xl_base_1.0/-/raw/main/sdxl_vae_fp16_fix.safetensors?inline=false"
+
+mkdir -p /workspace/stable-diffusion-webui/models/Lora/
+cd /workspace/stable-diffusion-webui/models/Lora/
+wget https://hf-mirror.com/CharlosHyens/modelora/resolve/main/Chaunceyhon-000012.safetensors
+wget https://hf-mirror.com/CharlosHyens/modelora/resolve/main/anran-000013.safetensors
+wget https://hf-mirror.com/CharlosHyens/modelora/resolve/main/jiaxin-000014.safetensors
+wget https://hf-mirror.com/CharlosHyens/modelora/resolve/main/qian-000013.safetensors
+wget https://hf-mirror.com/CharlosHyens/modelora/resolve/main/xiang-000014.safetensors
+
+cd /workspace/stable-diffusion-webui/extensions
+git clone https://github.com/hanamizuki-ai/stable-diffusion-webui-localization-zh_Hans
+git clone https://github.com/Mikubill/sd-webui-controlnet/
+git clone https://github.com/AlUlkesh/stable-diffusion-webui-images-browser
+git clone https://github.com/fkunn1326/openpose-editor
+git clone https://github.com/Bing-su/adetailer
+git clone https://github.com/huchenlei/sd-webui-openpose-editor
+git clone https://github.com/Physton/sd-webui-prompt-all-in-one
+git clone https://github.com/Uminosachi/sd-webui-inpaint-anything
+”
+#保存并退出文件，执行以下命令：
+chmod +x download_models.sh
+./download_models.sh
+
+#解决公共链接问题：
+wget https://hf-mirror.com/lalazzz/frpc_linux_amd64_v0.2/resolve/main/frpc_linux_amd64_v0.2?download=true -O frpc_linux_amd64_v0.2
+mkdir -p /workspace/stable-diffusion-webui/venv/lib/python3.10/site-packages/gradio
+mv frpc_linux_amd64_v0.2 /workspace/stable-diffusion-webui/venv/lib/python3.10/site-packages/gradio/
+chmod +x /workspace/stable-diffusion-webui/venv/lib/python3.10/site-packages/gradio/frpc_linux_amd64_v0.2
+
+
+#运行
+cd /workspace/stable-diffusion-webui/
+bash webui.sh -f
+
+#没问题后安装插件：
+#webui页面：Extensions--》install from URL--》输入链接--》点击install--》installed选项页--》点击apply and restart UI
+#链接（按顺序按需安装）：
+一.中英双语界面
+https://github.com/dtlnor/stable-diffusion-webui-localization-zh_CN
+https://github.com/journey-ad/sd-webui-bilingual-localization
+#然后点击：settings--》滑到底点击Bilingual-Localization--》滑回去找到Localization file (Please leave `User interface` - `Localization` as None)选择zh_CN--》再往下滑找到User Interface--》Localization--》none--》点击apply settings--》点击reload UI
+
+二.Booru tag（提示词补全）
+Extensions--》Available--》Load from--》下拉找到Booru tag--》点击右边安装install--》installed选项页--》点击apply and restart UI
+
+三.After Detailer（细节修复）
+类似同上
+
+四.Easy Tag Insert（提示词按钮）
+同上
+
+五.sd-extension-system-info（系统信息）
+同上
+
+六.sd-webui-infinite-image-browsing
+同上
+
+
+
+
+
+
+
+
+
+
+
+
+
